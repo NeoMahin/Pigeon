@@ -1,13 +1,14 @@
-import { NavLink } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
-import { auth, firestore } from "../firebase/firebase";
+import { auth, firestore, storage } from "../firebase/firebase";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function RightSidebar() {
   const [user, setUser] = useState(null);
-  const [username, setUsername] = useState("")
+  const [username, setUsername] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,13 +18,16 @@ export default function RightSidebar() {
 
         const userDoc = await getDoc(doc(firestore, "users", currentUser.uid));
         if (userDoc.exists()) {
-          setUsername(userDoc.data().username);
+          const userData = userDoc.data();
+          setUsername(userData.username);
+          setProfileImage(userData.profileImageUrl);
         } else {
           console.log("No such document!");
         }
       } else {
         setUser(null);
         setUsername("");
+        setProfileImage(null);
       }
     });
 
@@ -40,6 +44,25 @@ export default function RightSidebar() {
     }
   };
 
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file || !user) return;
+
+    try {
+      const imageRef = ref(storage, `profileImages/${user.uid}`);
+      await uploadBytes(imageRef, file);
+      const downloadUrl = await getDownloadURL(imageRef);
+
+      await updateDoc(doc(firestore, "users", user.uid), {
+        profileImageUrl: downloadUrl,
+      });
+
+      setProfileImage(downloadUrl);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
   return (
     <aside className="w-1/5 bg-gray-100 p-4 overflow-y-auto">
       {user ? (
@@ -47,15 +70,29 @@ export default function RightSidebar() {
       ) : (
         <p className="text-lg font-semibold mb-4">Welcome, Guest</p>
       )}
+      
+      <div className="profile-image-container mb-8">
+        <label htmlFor="imageUpload">
+          <img
+            src={profileImage || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
+            alt="Profile"
+            className="w-20 h-20 rounded-full cursor-pointer"
+          />
+        </label>
+        <input
+          id="imageUpload"
+          type="file"
+          accept="image/*"
+          onChange={handleImageUpload}
+          style={{ display: "none" }}
+        />
+      </div>
+
       <ul className="space-y-8">
         <li>
-          <NavLink className="p-2 bg-gray-300 rounded" to="/profile">Profile</NavLink>
-        </li>
-        <li>
-          <NavLink className="p-2 bg-gray-300 rounded" to="/settings">Settings</NavLink>
-        </li>
-        <li>
-          <NavLink onClick={handleSignOut} className="p-2 bg-gray-300 rounded">Sign out</NavLink>
+          <button onClick={handleSignOut} className="p-2 bg-gray-300 rounded">
+            Sign out
+          </button>
         </li>
       </ul>
     </aside>

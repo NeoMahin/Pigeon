@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types */
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where, getFirestore } from "firebase/firestore";
-import { debounce } from "lodash";
+import { collection, getDocs, getFirestore } from "firebase/firestore";
 import { auth } from "../firebase/firebase";
 
 export default function Sidebar({ onSelectUser }) {
@@ -9,24 +8,12 @@ export default function Sidebar({ onSelectUser }) {
   const [chatUsers, setChatUsers] = useState([]);
 
   useEffect(() => {
-    const fetchUsers = async (searchTerm) => {
+    const fetchUsers = async () => {
       try {
         const db = getFirestore();
         const usersRef = collection(db, "users");
 
-        let q;
-        if (searchTerm) {
-          q = query(
-            usersRef,
-            where("name", ">=", searchTerm),
-            where("name", "<", searchTerm + "\uf8ff")
-          );
-        } else {
-          q = query(usersRef);
-        }
-
-        const querySnapshot = await getDocs(q);
-
+        const querySnapshot = await getDocs(usersRef);
 
         const currentUserUID = auth.currentUser ? auth.currentUser.uid : null;
 
@@ -43,13 +30,13 @@ export default function Sidebar({ onSelectUser }) {
       }
     };
 
-    const debouncedFetchUsers = debounce(fetchUsers, 300);
-    debouncedFetchUsers(searchTerm);
+    fetchUsers();
+  }, []);
 
-    return () => {
-      debouncedFetchUsers.cancel();
-    };
-  }, [searchTerm]);
+
+  const filteredUsers = chatUsers.filter((user) =>
+    user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <aside className="w-1/5 bg-gray-800 text-white p-4 overflow-y-auto">
@@ -82,8 +69,8 @@ export default function Sidebar({ onSelectUser }) {
 
       <h2 className="text-lg font-semibold mb-4 pt-2">Chats</h2>
       <ul className="space-y-2">
-        {chatUsers.length > 0 ? (
-          chatUsers.map((user) => (
+        {filteredUsers.length > 0 ? (
+          filteredUsers.map((user) => (
             <li
               key={user.id}
               className="p-2 bg-gray-700 rounded"
