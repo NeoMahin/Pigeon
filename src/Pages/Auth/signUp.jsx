@@ -1,0 +1,214 @@
+/* eslint-disable react/no-unescaped-entities */
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { useState } from "react";
+import {  NavLink, useNavigate } from "react-router-dom";
+import { auth, firestore } from "../../firebase/firebase";
+import { doc, setDoc } from "firebase/firestore";
+
+export default function SignUp() {
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+
+
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const navigate = useNavigate(); 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+
+  const validateForm = () => {
+    const newErrors = {};
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+
+    if (!formData.username) newErrors.username = "Username is required.";
+    if (!formData.email) newErrors.email = "Email is required.";
+    else if (!emailPattern.test(formData.email))
+      newErrors.email = "Please enter a valid email address.";
+    if (!formData.password) newErrors.password = "Password is required.";
+    else if (formData.password.length < 8)
+      newErrors.password = "Password must be at least 8 characters.";
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match.";
+    if (!passwordPattern.test(formData.password))
+      newErrors.password = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+  
+    if (!validateForm()) {
+      return;
+    }
+
+    console.log('Email:', formData.email);
+    console.log('Password:', formData.password);
+  
+    try {
+      await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = auth.currentUser;
+      console.log(user);
+      console.log('Success');
+      if (user) {
+        await setDoc(doc(firestore, "users", user.uid), {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        });
+        navigate("/login");
+        setFormData({
+          username: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+        });
+      }
+    } catch (error) {
+      console.log('Sign-up error:', error);
+    }
+  }
+  
+  
+
+  return (
+    <div className="bg-gradient-to-r from-blue-600 via-gray-400 to-blue-700 h-screen flex items-center justify-center">
+      <div className="max-w-[600px] w-full">
+        <div className="bg-gray-800 h-[700px] w-full flex items-center justify-center rounded-lg shadow-lg">
+          <div>
+            <div className="w-20 h-20 mx-auto">
+              <svg className="w-full h-full" viewBox="0 0 72 72" id="emoji" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="color" strokeWidth="2"> <path fill="#9b9b9a" strokeWidth="2" d="m19.16 40.04 0.4275-2.06c-1.417-1.417-1.523-2.998-1.462-3.717 0.04535-0.5339-0.206-4.356 6.538-10.89 0.6766-0.6558 1.265-1.384 1.735-2.201 0.9457-1.645 2.712-4.998 5.3-11.03 3.851-8.978 8.116 12.15 7.396 18.19-0.09423 0.7913-0.9772 5.316-1.11 6.102l-2.88 10.79"></path> <path fill="#d0cfce" strokeWidth="2" d="m37.99 46.28c28.77-0.928 18.56-38.05 17.63-33.41-0.928 4.64-27.84 31.55-30.62 27.84-2.784-3.712-6.496-4.64-8.352-1.856s-2.784 3.712-2.784 3.712 5.568-0.928 6.496 0.928 3.871 7.946 9.28 8.352c0 0 1.847 0.6304 5.568 8.352 4.339 9.004 22.27 0 16.7-4.64-5.568-4.64-9.28-2.784-12.06-4.64-2.784-1.856-1.856-4.64-1.856-4.64z"></path> <path fill="#3F3F3F" strokeWidth="2" d="m36.85 60.94c0.03734 0.3547 9.492 1.853 15.31-5.424 0.1631-0.2042 0.8717 0.177 1.083 0.2394 1.388 4.093-7.656 9.271-11.99 8.019-3.685-1.276-4.394-2.835-4.394-2.835z"></path> <path fill="#3F3F3F" strokeWidth="2" d="m37.69 45.48c0.08512-1.762 21.08-2.961 18.18-31.95-0.1461-1.46 2.328 6.428 2.414 7.844 1.692 14.66-8.256 26.27-20.59 24.11z"></path> <path fill="#3F3F3F" strokeWidth="2" d="m32.52 37.72c3.818-5.379 4.203-19.26 0.9526-29.22-0.4548-1.395 3.475 4.933 3.964 6.265 2.39 6.636 2.672 12.93 0.5642 18.39z"></path> <path fill="#9b9b9a" strokeWidth="2" d="m23.88 47.87c2.378 0.01091 3.846-3.287 3.168-5.632-3.239-5.856-9.319-7.524-12.55 0.231 5.872-1.98 6.828 1.455 9.382 5.401z"></path> </g> <g id="line"> <path fill="none" stroke="#000000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="2" d="m12.46 27.72"></path> <path fill="none" stroke="#000000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="2" d="m38.29 46.13c28.36-0.9149 18.3-37.51 17.38-32.93s-27.44 31.1-30.19 27.44c-2.744-3.659-6.404-4.574-8.233-1.83-1.83 2.744-2.744 3.659-2.744 3.659s5.489-0.9149 6.404 0.9149c0.9149 1.83 3.816 7.833 9.148 8.233 0 0 1.821 0.6215 5.489 8.233 4.277 8.876 21.96 0 16.47-4.574-5.489-4.574-9.148-2.744-11.89-4.574-2.744-1.83-1.83-4.574-1.83-4.574z"></path> <path fill="none" stroke="#000000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="2" d="m38.37 26.51c0.3138-7.019-3.262-24.11-6.481-16.06-3.659 9.148-5.489 11.89-5.489 11.89-4.348 4.13-5.957 7.228-6.529 9.162"></path> </g> </g></svg>
+            </div>
+            <div className="text-center py-6 space-y-8">
+              <h1 className="text-white text-4xl font-bold">Sign Up</h1>
+              <p className="text-white">Create an account to get started.</p>
+            </div>
+
+            <form onSubmit={handleSignUp} className="px-5">
+              <div>
+                <label htmlFor="username" className="text-white block py-2 font-semibold">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="px-4 py-2 rounded-md text-sm outline-none mb-2 w-full"
+                  placeholder="Enter your username"
+                />
+                {errors.username && <p className="text-red-500 text-sm">{errors.username}</p>}
+
+                <label htmlFor="email" className="text-white block py-2 font-semibold">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="px-4 py-2 rounded-md text-sm outline-none mb-2 w-full"
+                  placeholder="Enter your email"
+                />
+                {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
+
+                <label htmlFor="password" className="text-white block py-2 font-semibold">
+                  Password
+                </label>
+                <div className="relative mb-2">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="px-4 py-2 rounded-md text-sm outline-none w-full"
+                    placeholder="Enter your password"
+                  />
+                  <span
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-3 flex items-center cursor-pointer text-gray-500"
+                  >
+                    {showPassword ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="size-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="size-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                </div>
+                {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
+
+                <label htmlFor="confirmPassword" className="text-white block py-2 font-semibold">
+                  Confirm Password
+                </label>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="px-4 py-2 rounded-md text-sm outline-none w-full"
+                  placeholder="Confirm your password"
+                />
+                {errors.confirmPassword && <p className="text-red-500 text-sm">{errors.confirmPassword}</p>}
+
+                <div className="text-end mt-8">
+                  <button
+                    type="submit"
+                    className="bg-blue-500 text-white px-8 font-semibold py-2 rounded"
+                  >
+                    Sign Up
+                  </button>
+                </div>
+
+                <div className="text-white mt-8 text-center">
+                  <p>Already have an account?<span className="font-semibold pl-2 text-blue-400"><NavLink to="/login">Login</NavLink></span></p>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
